@@ -1,10 +1,13 @@
-const CACHE_NAME = "sss-app-v3";
+const CACHE_NAME = "sss-app-v4";
 
 const APP_FILES = [
     "./",
     "./index.html",
     "./qrcode.min.js",
-    "./config.json"
+    "./config.json",
+    "./manifest.json",
+    "./icons/icon-192.png",
+    "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", event => {

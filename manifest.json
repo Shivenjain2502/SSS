@@ -1,0 +1,10 @@
+{
+  "name": "SSS",
+  "short_name": "SSS",
+  "description": "Offline-first UPI payment splitting and tracking",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "orientation": "portrait"
+}
