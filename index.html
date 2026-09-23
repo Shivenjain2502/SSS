@@ -3916,6 +3916,25 @@ async function fetchRemoteConfiguration() {
 
 }
 </script>
-
+<script>
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker
+            .register("./sw.js")
+            .then(registration => {
+                console.log(
+                    "SSS service worker registered:",
+                    registration.scope
+                );
+            })
+            .catch(error => {
+                console.error(
+                    "SSS service worker registration failed:",
+                    error
+                );
+            });
+    });
+}
+</script>
 </body>
 </html>
