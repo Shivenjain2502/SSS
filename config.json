@@ -1,0 +1,8 @@
+{
+  "app": "SSS",
+  "configId": "sss-production",
+  "version": 3,
+  "merchantName": "Manu Jain",
+  "merchantUPI": "9691828493-2@axl",
+  "maxAmount": 2000
+}

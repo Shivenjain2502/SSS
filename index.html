@@ -1,0 +1,3921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSS - UPI Payment Splitter</title>
+
+    <script src="qrcode.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f6f8;
+            color: #171717;
+        }
+
+        .app {
+            max-width: 480px;
+            margin: auto;
+            min-height: 100vh;
+            background: white;
+        }
+
+        header {
+            padding: 20px;
+            background: #111;
+            color: white;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header p {
+            margin: 5px 0 0;
+            color: #bbb;
+            font-size: 13px;
+        }
+
+        .nav {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .nav button {
+            flex: 1;
+            border: none;
+            background: white;
+            padding: 14px 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .nav button.active {
+            font-weight: bold;
+            border-bottom: 3px solid #111;
+        }
+
+        .section {
+            padding: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 9px;
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        button.primary {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 9px;
+            background: #111;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 9px;
+            background: white;
+            color: #111;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        button.small-button {
+            padding: 9px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            color: #111;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 16px;
+            background: white;
+        }
+
+        .amount {
+            font-size: 30px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .reference {
+            font-size: 11px;
+            color: #777;
+            word-break: break-all;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .qr-container canvas,
+        .qr-container img {
+            max-width: 260px;
+            max-height: 260px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .button-row button {
+            flex: 1;
+        }
+
+        .proof-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-top: 12px;
+            border: 1px solid #ddd;
+        }
+
+        .success {
+            background: #e9f8ed;
+            border: 1px solid #b8dfc0;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .info {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 9px;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 16px;
+        }
+
+        .history-card {
+            border: 1px solid #ddd;
+            border-radius: 13px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .history-amount {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .history-date {
+            color: #777;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .history-meta {
+            font-size: 13px;
+            color: #555;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .history-status {
+            font-size: 12px;
+            font-weight: bold;
+            padding: 5px 8px;
+            border-radius: 15px;
+            height: fit-content;
+        }
+
+        .history-status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .history-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: #777;
+        }
+
+        .detail-value {
+            font-weight: bold;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .payment-detail {
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 12px;
+        }
+
+        .payment-detail h3 {
+            margin: 0 0 10px;
+            font-size: 15px;
+        }
+
+        .proof-button {
+            margin-top: 12px;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .proof-viewer {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .proof-viewer-content {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .proof-viewer img {
+            max-width: 100%;
+            max-height: 75vh;
+            object-fit: contain;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .proof-viewer button {
+            margin-top: 15px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            color: #111;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .config-saved {
+            background: #e9f8ed;
+            border: 1px solid #b8dfc0;
+            color: #155724;
+            padding: 12px;
+            border-radius: 9px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .config-warning {
+            background: #fff3cd;
+            border: 1px solid #ffe69c;
+            color: #664d03;
+            padding: 12px;
+            border-radius: 9px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #777;
+        }
+
+        .small {
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header>
+        <h1>SSS</h1>
+        <p>UPI Payment Splitter</p>
+    </header>
+
+
+    <!-- NAVIGATION -->
+
+    <div class="nav">
+
+        <button
+            id="homeTab"
+            class="active"
+            onclick="showTab('home')"
+        >
+            New Payment
+        </button>
+
+        <button
+            id="historyTab"
+            onclick="showTab('history')"
+        >
+            History
+        </button>
+
+        <button
+            id="configTab"
+            onclick="showTab('config')"
+        >
+            Settings
+        </button>
+
+    </div>
+
+
+    <!-- ================= HOME ================= -->
+
+    <div
+        id="homeSection"
+        class="section"
+    >
+
+        <div id="startScreen">
+
+            <div
+                id="configStatus"
+                class="config-warning hidden"
+            ></div>
+
+
+            <div class="info">
+
+                SSS will use the saved merchant configuration
+                automatically when creating new payments.
+
+                Transaction data remains stored locally on this device.
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Merchant
+                    </span>
+
+                    <span
+                        id="homeMerchantName"
+                        class="detail-value"
+                    >
+                        Not configured
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        UPI ID
+                    </span>
+
+                    <span
+                        id="homeMerchantUPI"
+                        class="detail-value"
+                    >
+                        Not configured
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Maximum QR
+                    </span>
+
+                    <span
+                        id="homeMaxAmount"
+                        class="detail-value"
+                    >
+                        Not configured
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <label for="billAmount">
+                Total Bill Amount (₹)
+            </label>
+
+            <input
+                type="number"
+                id="billAmount"
+                placeholder="5000"
+                min="1"
+                step="0.01"
+            >
+
+
+            <button
+                class="primary"
+                onclick="createPayment()"
+            >
+                Create Payment
+            </button>
+
+
+            <div
+                class="small"
+                style="margin-top:12px;text-align:center;"
+            >
+                Merchant settings are managed from Settings.
+            </div>
+
+        </div>
+
+
+        <!-- PAYMENT SCREEN -->
+
+        <div
+            id="paymentScreen"
+            class="hidden"
+        >
+
+            <div class="card">
+
+                <div class="small">
+
+                    Payment
+                    <span id="paymentNumber"></span>
+
+                </div>
+
+
+                <div class="amount">
+
+                    ₹<span id="paymentAmount"></span>
+
+                </div>
+
+
+                <div class="small">
+
+                    Pay to:
+                    <span id="displayMerchant"></span>
+
+                </div>
+
+
+                <div class="reference">
+
+                    Reference:
+                    <span id="paymentReference"></span>
+
+                </div>
+
+
+                <div
+                    id="statusBadge"
+                    class="status pending"
+                >
+                    NOT PAID
+                </div>
+
+
+                <div
+                    id="qrContainer"
+                    class="qr-container"
+                ></div>
+
+
+                <div class="info">
+
+                    Scan this QR using your UPI application
+                    and verify the displayed payee and amount
+                    before paying.
+
+                </div>
+
+
+                <div id="paymentActions">
+
+                    <div class="button-row">
+
+                        <button
+                            class="primary"
+                            onclick="markPaid()"
+                        >
+                            YES — PAID
+                        </button>
+
+
+                        <button
+                            class="secondary"
+                            onclick="markPending()"
+                        >
+                            NOT PAID
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PROOF -->
+
+                <div
+                    id="proofSection"
+                    class="hidden"
+                >
+
+                    <hr
+                        style="border:0;border-top:1px solid #eee;margin:20px 0;"
+                    >
+
+
+                    <strong>
+                        Payment Proof
+                    </strong>
+
+
+                    <p class="small">
+                        Attach the payment screenshot if available.
+                    </p>
+
+
+                    <div class="button-row">
+
+                        <button
+                            class="secondary"
+                            onclick="openCamera()"
+                        >
+                            Camera
+                        </button>
+
+
+                        <button
+                            class="secondary"
+                            onclick="openGallery()"
+                        >
+                            Gallery
+                        </button>
+
+                    </div>
+
+
+                    <input
+                        type="file"
+                        id="cameraInput"
+                        accept="image/*"
+                        capture="environment"
+                        class="hidden"
+                        onchange="handleProof(event)"
+                    >
+
+
+                    <input
+                        type="file"
+                        id="galleryInput"
+                        accept="image/*"
+                        class="hidden"
+                        onchange="handleProof(event)"
+                    >
+
+
+                    <div
+                        id="proofInfo"
+                        class="hidden"
+                    >
+
+                        <img
+                            id="proofPreview"
+                            class="proof-preview"
+                            alt="Payment proof"
+                        >
+
+
+                        <div
+                            class="proof-label"
+                            id="proofFileName"
+                        ></div>
+
+                    </div>
+
+
+                    <div style="margin-top:15px;">
+
+                        <button
+                            class="primary"
+                            onclick="nextPayment()"
+                        >
+                            Continue
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="completionCard"
+                class="success hidden"
+            >
+
+                <strong>
+                    Transaction Completed
+                </strong>
+
+
+                <p>
+                    All payments in this transaction have been
+                    marked as paid.
+                </p>
+
+
+                <button
+                    class="primary"
+                    onclick="startNewPayment()"
+                >
+                    New Payment
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================= HISTORY ================= -->
+
+    <div
+        id="historySection"
+        class="section hidden"
+    >
+
+        <div id="historyList"></div>
+
+
+        <div
+            id="transactionDetail"
+            class="hidden"
+        ></div>
+
+    </div>
+
+
+    <!-- ================= CONFIGURATION ================= -->
+
+    <div
+        id="configSection"
+        class="section hidden"
+    >
+
+        <div class="card">
+
+            <h2 style="margin-top:0;">
+                Merchant Configuration
+            </h2>
+
+
+           <div class="config-warning">
+
+    <strong>Important</strong>
+
+    <br><br>
+
+    The Merchant UPI ID controls where future
+    QR payments are directed.
+
+    <br><br>
+
+    Verify the UPI ID carefully before saving.
+    Saving a new configuration will affect
+    future transactions only.
+
+    <br><br>
+
+    Previously created transactions retain
+    their original UPI ID.
+
+</div>
+
+
+            <div
+                id="configurationSaved"
+                class="config-saved hidden"
+            >
+                Configuration saved on this device.
+            </div>
+
+
+            <label for="configMerchantName">
+                Merchant Name
+            </label>
+
+
+            <input
+                type="text"
+                id="configMerchantName"
+                placeholder="Merchant name"
+            >
+
+
+            <label for="configMerchantUPI">
+                Merchant UPI ID
+            </label>
+
+
+            <input
+                type="text"
+                id="configMerchantUPI"
+                placeholder="example@upi"
+                autocomplete="off"
+                autocapitalize="none"
+            >
+
+
+            <label for="configMaxAmount">
+                Maximum Amount Per QR (₹)
+            </label>
+
+
+            <input
+                type="number"
+                id="configMaxAmount"
+                min="1"
+                step="0.01"
+                placeholder="2000"
+            >
+
+
+            <button
+                class="primary"
+                onclick="saveConfiguration()"
+            >
+                Save Configuration
+            </button>
+
+        </div>
+
+
+        <div class="info">
+
+    <strong>Current configuration</strong>
+
+    <br><br>
+
+    Merchant:
+    <span id="currentConfigName">
+        —
+    </span>
+
+    <br>
+
+    UPI:
+    <span id="currentConfigUPI">
+        —
+    </span>
+
+    <br>
+
+    Maximum QR:
+    ₹<span id="currentConfigMax">
+        —
+    </span>
+
+    <div
+        class="small"
+        style="margin-top:12px;"
+    >
+        Last configuration update:
+        <span id="currentConfigUpdated">
+            —
+        </span>
+    </div>
+
+    <div
+        class="small"
+        style="margin-top:6px;"
+    >
+        Configuration source:
+        <span id="currentConfigSource">
+            Local
+        </span>
+    </div>
+
+    <div
+        class="small"
+        style="margin-top:6px;"
+    >
+        Remote version:
+        <span id="currentConfigRemoteVersion">
+            —
+        </span>
+    </div>
+
+</div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================= PROOF VIEWER ================= -->
+
+    <div
+        id="proofViewer"
+        class="proof-viewer hidden"
+    >
+
+        <div class="proof-viewer-content">
+
+            <img
+                id="fullProofImage"
+                alt="Saved payment proof"
+            >
+
+            <br>
+
+            <button
+                onclick="closeProofViewer()"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    /* =========================================================
+       DATABASE
+    ========================================================= */
+
+    const DB_NAME =
+        "SSS_DB";
+
+    const DB_VERSION =
+        2;
+
+    let db =
+        null;
+
+
+    function openDatabase() {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const request =
+                    indexedDB.open(
+                        DB_NAME,
+                        DB_VERSION
+                    );
+
+
+                request.onupgradeneeded =
+                    function(event) {
+
+                        const database =
+                            event.target.result;
+
+
+                        if (
+                            !database
+                                .objectStoreNames
+                                .contains(
+                                    "transactions"
+                                )
+                        ) {
+
+                            const transactionStore =
+                                database
+                                    .createObjectStore(
+                                        "transactions",
+                                        {
+                                            keyPath:
+                                                "id"
+                                        }
+                                    );
+
+
+                            transactionStore
+                                .createIndex(
+                                    "createdAt",
+                                    "createdAt",
+                                    {
+                                        unique:
+                                            false
+                                    }
+                                );
+
+                        }
+
+
+                        if (
+                            !database
+                                .objectStoreNames
+                                .contains(
+                                    "proofs"
+                                )
+                        ) {
+
+                            const proofStore =
+                                database
+                                    .createObjectStore(
+                                        "proofs",
+                                        {
+                                            keyPath:
+                                                "id"
+                                        }
+                                    );
+
+
+                            proofStore
+                                .createIndex(
+                                    "transactionId",
+                                    "transactionId",
+                                    {
+                                        unique:
+                                            false
+                                    }
+                                );
+
+
+                            proofStore
+                                .createIndex(
+                                    "paymentReference",
+                                    "paymentReference",
+                                    {
+                                        unique:
+                                            false
+                                    }
+                                );
+
+                        }
+
+
+                        /*
+                         * Configuration store
+                         */
+
+                        if (
+                            !database
+                                .objectStoreNames
+                                .contains(
+                                    "configuration"
+                                )
+                        ) {
+
+                            database
+                                .createObjectStore(
+                                    "configuration",
+                                    {
+                                        keyPath:
+                                            "id"
+                                    }
+                                );
+
+                        }
+
+                    };
+
+
+                request.onsuccess =
+                    function(event) {
+
+                        db =
+                            event.target.result;
+
+                        resolve(db);
+
+                    };
+
+
+                request.onerror =
+                    function(event) {
+
+                        reject(
+                            event.target.error
+                        );
+
+                    };
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       TRANSACTION DATABASE FUNCTIONS
+    ========================================================= */
+
+    function saveTransaction(
+        transaction
+    ) {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "transactions"
+                        ],
+                        "readwrite"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "transactions"
+                    );
+
+
+                const request =
+                    store.put(
+                        transaction
+                    );
+
+
+                request.onsuccess =
+                    () => resolve();
+
+
+                request.onerror =
+                    () => reject(
+                        request.error
+                    );
+
+            }
+        );
+
+    }
+
+
+    function getAllTransactions() {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "transactions"
+                        ],
+                        "readonly"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "transactions"
+                    );
+
+
+                const request =
+                    store.getAll();
+
+
+                request.onsuccess =
+                    function() {
+
+                        const results =
+                            request.result ||
+                            [];
+
+
+                        results.sort(
+                            (a, b) =>
+                                new Date(
+                                    b.createdAt
+                                ) -
+                                new Date(
+                                    a.createdAt
+                                )
+                        );
+
+
+                        resolve(
+                            results
+                        );
+
+                    };
+
+
+                request.onerror =
+                    () =>
+                        reject(
+                            request.error
+                        );
+
+            }
+        );
+
+    }
+
+
+    function getTransaction(
+        id
+    ) {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "transactions"
+                        ],
+                        "readonly"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "transactions"
+                    );
+
+
+                const request =
+                    store.get(id);
+
+
+                request.onsuccess =
+                    () =>
+                        resolve(
+                            request.result ||
+                            null
+                        );
+
+
+                request.onerror =
+                    () =>
+                        reject(
+                            request.error
+                        );
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       PROOF DATABASE FUNCTIONS
+    ========================================================= */
+
+    function saveProof(
+        proof
+    ) {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "proofs"
+                        ],
+                        "readwrite"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "proofs"
+                    );
+
+
+                const request =
+                    store.put(
+                        proof
+                    );
+
+
+                request.onsuccess =
+                    () => resolve();
+
+
+                request.onerror =
+                    () =>
+                        reject(
+                            request.error
+                        );
+
+            }
+        );
+
+    }
+
+
+    function getProof(
+        proofId
+    ) {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "proofs"
+                        ],
+                        "readonly"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "proofs"
+                    );
+
+
+                const request =
+                    store.get(
+                        proofId
+                    );
+
+
+                request.onsuccess =
+                    () =>
+                        resolve(
+                            request.result ||
+                            null
+                        );
+
+
+                request.onerror =
+                    () =>
+                        reject(
+                            request.error
+                        );
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       CONFIGURATION DATABASE
+    ========================================================= */
+
+    const CONFIG_ID =
+        "merchant-config";
+
+
+    function saveConfigToDatabase(
+        configuration
+    ) {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "configuration"
+                        ],
+                        "readwrite"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "configuration"
+                    );
+
+
+                const request =
+                    store.put(
+                        configuration
+                    );
+
+
+                request.onsuccess =
+                    () => resolve();
+
+
+                request.onerror =
+                    () =>
+                        reject(
+                            request.error
+                        );
+
+            }
+        );
+
+    }
+
+
+    function getConfiguration() {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                const tx =
+                    db.transaction(
+                        [
+                            "configuration"
+                        ],
+                        "readonly"
+                    );
+
+
+                const store =
+                    tx.objectStore(
+                        "configuration"
+                    );
+
+
+                const request =
+                    store.get(
+                        CONFIG_ID
+                    );
+
+
+                request.onsuccess =
+                    () =>
+                        resolve(
+                            request.result ||
+                            null
+                        );
+
+
+                request.onerror =
+                    () =>
+                        reject(
+                            request.error
+                        );
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       APPLICATION STATE
+    ========================================================= */
+
+    let currentTransaction =
+        null;
+
+    let currentPaymentIndex =
+        0;
+
+
+    /* =========================================================
+       INITIALIZATION
+    ========================================================= */
+
+    async function initializeApp() {
+
+        try {
+
+            await openDatabase();
+
+await loadConfiguration();
+
+await fetchRemoteConfiguration();
+
+await refreshHistory();
+
+
+            console.log(
+                "SSS database ready."
+            );
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+
+
+            alert(
+                "SSS could not open its local database."
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       TAB SYSTEM
+    ========================================================= */
+
+    function showTab(
+        tab
+    ) {
+
+        const home =
+            document.getElementById(
+                "homeSection"
+            );
+
+
+        const history =
+            document.getElementById(
+                "historySection"
+            );
+
+
+        const config =
+            document.getElementById(
+                "configSection"
+            );
+
+
+        const homeTab =
+            document.getElementById(
+                "homeTab"
+            );
+
+
+        const historyTab =
+            document.getElementById(
+                "historyTab"
+            );
+
+
+        const configTab =
+            document.getElementById(
+                "configTab"
+            );
+
+
+        home.classList.add(
+            "hidden"
+        );
+
+
+        history.classList.add(
+            "hidden"
+        );
+
+
+        config.classList.add(
+            "hidden"
+        );
+
+
+        homeTab.classList.remove(
+            "active"
+        );
+
+
+        historyTab.classList.remove(
+            "active"
+        );
+
+
+        configTab.classList.remove(
+            "active"
+        );
+
+
+        if (
+            tab === "home"
+        ) {
+
+            home.classList.remove(
+                "hidden"
+            );
+
+
+            homeTab.classList.add(
+                "active"
+            );
+
+
+            updateHomeConfiguration();
+
+            return;
+
+        }
+
+
+        if (
+            tab === "history"
+        ) {
+
+            history.classList.remove(
+                "hidden"
+            );
+
+
+            historyTab.classList.add(
+                "active"
+            );
+
+
+            refreshHistory();
+
+            return;
+
+        }
+
+
+        if (
+            tab === "config"
+        ) {
+
+            config.classList.remove(
+                "hidden"
+            );
+
+
+            configTab.classList.add(
+                "active"
+            );
+
+
+            loadConfigurationIntoForm();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       CONFIGURATION
+    ========================================================= */
+
+    async function saveConfiguration() {
+
+    const merchantName =
+        document
+            .getElementById("configMerchantName")
+            .value
+            .trim();
+
+    const merchantUPI =
+        document
+            .getElementById("configMerchantUPI")
+            .value
+            .trim()
+            .toLowerCase();
+
+    const maxAmount =
+        parseFloat(
+            document
+                .getElementById("configMaxAmount")
+                .value
+        );
+
+
+    /* =========================================
+       BASIC VALIDATION
+    ========================================= */
+
+    if (!merchantName) {
+
+        alert(
+            "Please enter the merchant name."
+        );
+
+        return;
+
+    }
+
+
+    if (!merchantUPI) {
+
+        alert(
+            "Please enter the merchant UPI ID."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Basic UPI format check.
+     *
+     * This checks that the value looks like
+     * a UPI ID. It does NOT verify ownership.
+     */
+
+    const upiPattern =
+        /^[a-zA-Z0-9._-]{2,}@[a-zA-Z0-9._-]{2,}$/;
+
+
+    if (
+        !upiPattern.test(merchantUPI)
+    ) {
+
+        alert(
+            "Please enter a valid-looking UPI ID, for example merchant@upi."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !maxAmount ||
+        maxAmount <= 0
+    ) {
+
+        alert(
+            "Please enter a valid maximum QR amount."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Keep the maximum amount practical.
+     * This prevents accidental extremely large
+     * configuration values.
+     */
+
+    if (
+        maxAmount > 1000000
+    ) {
+
+        alert(
+            "Maximum QR amount cannot exceed ₹10,00,000."
+        );
+
+        return;
+
+    }
+
+
+    /* =========================================
+       CONFIRMATION
+    ========================================= */
+
+    const confirmationMessage =
+        "Please verify the merchant configuration carefully.\n\n" +
+
+        "Merchant:\n" +
+        merchantName +
+        "\n\n" +
+
+        "UPI ID:\n" +
+        merchantUPI +
+        "\n\n" +
+
+        "Maximum QR Amount:\n₹" +
+        maxAmount.toFixed(2) +
+        "\n\n" +
+
+        "Important:\n" +
+        "Future QR payments will be directed to this UPI ID.\n\n" +
+
+        "Do you want to save this configuration?";
+
+
+    const confirmed =
+        window.confirm(
+            confirmationMessage
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    /* =========================================
+       SAVE
+    ========================================= */
+
+    const configuration = {
+
+    id:
+        CONFIG_ID,
+
+    merchantName:
+        merchantName,
+
+    merchantUPI:
+        merchantUPI,
+
+    maxAmount:
+        Number(
+            maxAmount.toFixed(2)
+        ),
+
+    updatedAt:
+        new Date().toISOString(),
+
+    source:
+        "Local",
+
+    remoteVersion:
+        0
+
+};
+
+
+    await saveConfigToDatabase(
+        configuration
+    );
+
+
+    document
+        .getElementById(
+            "configurationSaved"
+        )
+        .classList.remove(
+            "hidden"
+        );
+
+
+    updateConfigurationDisplay(
+        configuration
+    );
+
+
+    updateHomeConfiguration();
+
+
+    alert(
+        "Merchant configuration saved successfully."
+    );
+
+}
+    async function loadConfiguration() {
+
+        const configuration =
+            await getConfiguration();
+
+
+        if (
+            !configuration
+        ) {
+
+            updateHomeConfiguration();
+
+            return;
+
+        }
+
+
+        updateConfigurationDisplay(
+            configuration
+        );
+
+
+        updateHomeConfiguration();
+
+    }
+
+
+    async function loadConfigurationIntoForm() {
+
+        const configuration =
+            await getConfiguration();
+
+
+        if (
+            !configuration
+        ) {
+
+            document
+                .getElementById(
+                    "configMerchantName"
+                )
+                .value =
+                "";
+
+
+            document
+                .getElementById(
+                    "configMerchantUPI"
+                )
+                .value =
+                "";
+
+
+            document
+                .getElementById(
+                    "configMaxAmount"
+                )
+                .value =
+                "2000";
+
+
+            return;
+
+        }
+
+
+        document
+            .getElementById(
+                "configMerchantName"
+            )
+            .value =
+            configuration.merchantName;
+
+
+        document
+            .getElementById(
+                "configMerchantUPI"
+            )
+            .value =
+            configuration.merchantUPI;
+
+
+        document
+            .getElementById(
+                "configMaxAmount"
+            )
+            .value =
+            configuration.maxAmount;
+
+
+        updateConfigurationDisplay(
+            configuration
+        );
+
+    }
+
+
+    function updateConfigurationDisplay(
+    configuration
+) {
+
+    document
+        .getElementById(
+            "currentConfigName"
+        )
+        .textContent =
+        configuration.merchantName;
+
+
+    document
+        .getElementById(
+            "currentConfigUPI"
+        )
+        .textContent =
+        configuration.merchantUPI;
+
+
+    document
+        .getElementById(
+            "currentConfigMax"
+        )
+        .textContent =
+        Number(
+            configuration.maxAmount
+        ).toFixed(2);
+
+
+    const updatedElement =
+        document.getElementById(
+            "currentConfigUpdated"
+        );
+
+
+    if (
+        updatedElement &&
+        configuration.updatedAt
+    ) {
+
+        updatedElement.textContent =
+            new Date(
+                configuration.updatedAt
+            ).toLocaleString();
+
+    }
+
+
+    const sourceElement =
+        document.getElementById(
+            "currentConfigSource"
+        );
+
+
+    if (sourceElement) {
+
+        sourceElement.textContent =
+            configuration.source ||
+            "Local";
+
+    }
+
+
+    const remoteVersionElement =
+        document.getElementById(
+            "currentConfigRemoteVersion"
+        );
+
+
+    if (remoteVersionElement) {
+
+        remoteVersionElement.textContent =
+            configuration.remoteVersion !==
+            undefined
+                ? configuration.remoteVersion
+                : "—";
+
+    }
+
+}
+
+    async function updateHomeConfiguration() {
+
+        const configuration =
+            await getConfiguration();
+
+
+        const merchantName =
+            document.getElementById(
+                "homeMerchantName"
+            );
+
+
+        const merchantUPI =
+            document.getElementById(
+                "homeMerchantUPI"
+            );
+
+
+        const maxAmount =
+            document.getElementById(
+                "homeMaxAmount"
+            );
+
+
+        const status =
+            document.getElementById(
+                "configStatus"
+            );
+
+
+        if (
+            !configuration
+        ) {
+
+            merchantName.textContent =
+                "Not configured";
+
+
+            merchantUPI.textContent =
+                "Not configured";
+
+
+            maxAmount.textContent =
+                "Not configured";
+
+
+            status.textContent =
+                "Please configure the merchant before creating a payment.";
+
+
+            status.classList.remove(
+                "hidden"
+            );
+
+
+            return;
+
+        }
+
+
+        merchantName.textContent =
+            configuration.merchantName;
+
+
+        merchantUPI.textContent =
+            configuration.merchantUPI;
+
+
+        maxAmount.textContent =
+            "₹" +
+            Number(
+                configuration.maxAmount
+            ).toFixed(2);
+
+
+        status.classList.add(
+            "hidden"
+        );
+
+    }
+
+
+    /* =========================================================
+       CREATE PAYMENT
+    ========================================================= */
+
+    async function createPayment() {
+
+        const configuration =
+            await getConfiguration();
+
+
+        if (
+            !configuration
+        ) {
+
+            alert(
+                "Please configure the merchant in Settings first."
+            );
+
+
+            showTab(
+                "config"
+            );
+
+
+            return;
+
+        }
+
+
+        const billAmount =
+            parseFloat(
+                document
+                    .getElementById(
+                        "billAmount"
+                    )
+                    .value
+            );
+
+
+        if (
+            !billAmount ||
+            billAmount <= 0
+        ) {
+
+            alert(
+                "Please enter a valid bill amount."
+            );
+
+            return;
+
+        }
+
+
+        const merchantName =
+            configuration.merchantName;
+
+
+        const merchantUPI =
+            configuration.merchantUPI;
+
+
+        const maxAmount =
+            Number(
+                configuration.maxAmount
+            );
+
+
+        const payments =
+            [];
+
+
+        let remaining =
+            billAmount;
+
+
+        let paymentNumber =
+            1;
+
+
+        while (
+            remaining > 0.001
+        ) {
+
+            const amount =
+                Math.min(
+                    remaining,
+                    maxAmount
+                );
+
+
+            payments.push({
+
+                amount:
+                    Number(
+                        amount.toFixed(2)
+                    ),
+
+                reference:
+                    generateReference(
+                        paymentNumber
+                    ),
+
+                status:
+                    "pending",
+
+                proofId:
+                    null,
+
+                proofName:
+                    null,
+
+                proofType:
+                    null,
+
+                proofAddedAt:
+                    null
+
+            });
+
+
+            remaining =
+                Number(
+                    (
+                        remaining -
+                        amount
+                    ).toFixed(2)
+                );
+
+
+            paymentNumber++;
+
+        }
+
+
+        currentTransaction = {
+
+            id:
+                "TXN-" +
+                Date.now() +
+                "-" +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 8)
+                    .toUpperCase(),
+
+            createdAt:
+                new Date().toISOString(),
+
+            merchantName,
+
+            merchantUPI,
+
+            totalAmount:
+                Number(
+                    billAmount.toFixed(2)
+                ),
+
+            maxAmount:
+                Number(
+                    maxAmount.toFixed(2)
+                ),
+
+            payments,
+
+            status:
+                "pending"
+
+        };
+
+
+        currentPaymentIndex =
+            0;
+
+
+        await saveTransaction(
+            currentTransaction
+        );
+
+
+        document
+            .getElementById(
+                "startScreen"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+
+        document
+            .getElementById(
+                "paymentScreen"
+            )
+            .classList.remove(
+                "hidden"
+            );
+
+
+        await renderCurrentPayment();
+
+    }
+
+
+    /* =========================================================
+       REFERENCE
+    ========================================================= */
+
+    function generateReference(
+        number
+    ) {
+
+        const now =
+            new Date();
+
+
+        const date =
+            now.getFullYear() +
+            String(
+                now.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            ) +
+            String(
+                now.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const time =
+            String(
+                now.getHours()
+            ).padStart(
+                2,
+                "0"
+            ) +
+            String(
+                now.getMinutes()
+            ).padStart(
+                2,
+                "0"
+            ) +
+            String(
+                now.getSeconds()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const random =
+            Math.random()
+                .toString(36)
+                .substring(
+                    2,
+                    7
+                )
+                .toUpperCase();
+
+
+        return (
+            "SSS-" +
+            date +
+            "-" +
+            time +
+            "-" +
+            random +
+            "-" +
+            String(
+                number
+            ).padStart(
+                2,
+                "0"
+            )
+        );
+
+    }
+
+
+    /* =========================================================
+       RENDER PAYMENT
+    ========================================================= */
+
+    async function renderCurrentPayment() {
+
+        const payment =
+            currentTransaction
+                .payments[
+                    currentPaymentIndex
+                ];
+
+
+        document
+            .getElementById(
+                "paymentNumber"
+            )
+            .textContent =
+            `${currentPaymentIndex + 1} of ${currentTransaction.payments.length}`;
+
+
+        document
+            .getElementById(
+                "paymentAmount"
+            )
+            .textContent =
+            payment.amount.toFixed(
+                2
+            );
+
+
+        document
+            .getElementById(
+                "displayMerchant"
+            )
+            .textContent =
+            currentTransaction.merchantName;
+
+
+        document
+            .getElementById(
+                "paymentReference"
+            )
+            .textContent =
+            payment.reference;
+
+
+        const statusBadge =
+            document.getElementById(
+                "statusBadge"
+            );
+
+
+        if (
+            payment.status ===
+            "paid"
+        ) {
+
+            statusBadge.textContent =
+                "PAID";
+
+
+            statusBadge.className =
+                "status paid";
+
+        } else {
+
+            statusBadge.textContent =
+                "NOT PAID";
+
+
+            statusBadge.className =
+                "status pending";
+
+        }
+
+
+        const qrContainer =
+            document.getElementById(
+                "qrContainer"
+            );
+
+
+        qrContainer.innerHTML =
+            "";
+
+
+        const upiPayload =
+            "upi://pay" +
+            "?pa=" +
+            encodeURIComponent(
+                currentTransaction.merchantUPI
+            ) +
+            "&pn=" +
+            encodeURIComponent(
+                currentTransaction.merchantName
+            ) +
+            "&tr=" +
+            encodeURIComponent(
+                payment.reference
+            ) +
+            "&am=" +
+            encodeURIComponent(
+                payment.amount.toFixed(
+                    2
+                )
+            ) +
+            "&cu=INR";
+
+
+        if (
+            !upiPayload.includes(
+                "pa=" +
+                encodeURIComponent(
+                    currentTransaction.merchantUPI
+                )
+            )
+        ) {
+
+            alert(
+                "QR validation failed: incorrect UPI ID."
+            );
+
+
+            return;
+
+        }
+
+
+        if (
+            !upiPayload.includes(
+                "am=" +
+                encodeURIComponent(
+                    payment.amount.toFixed(
+                        2
+                    )
+                )
+            )
+        ) {
+
+            alert(
+                "QR validation failed: incorrect amount."
+            );
+
+
+            return;
+
+        }
+
+
+        if (
+            !upiPayload.includes(
+                "tr=" +
+                encodeURIComponent(
+                    payment.reference
+                )
+            )
+        ) {
+
+            alert(
+                "QR validation failed: incorrect reference."
+            );
+
+
+            return;
+
+        }
+
+
+        new QRCode(
+            qrContainer,
+            {
+                text:
+                    upiPayload,
+
+                width:
+                    250,
+
+                height:
+                    250,
+
+                correctLevel:
+                    QRCode.CorrectLevel.M
+            }
+        );
+
+
+        document
+            .getElementById(
+                "proofSection"
+            )
+            .classList.toggle(
+                "hidden",
+                payment.status !==
+                "paid"
+            );
+
+
+        document
+            .getElementById(
+                "paymentActions"
+            )
+            .classList.toggle(
+                "hidden",
+                payment.status ===
+                "paid"
+            );
+
+
+        document
+            .getElementById(
+                "completionCard"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+
+        await loadCurrentProof();
+
+    }
+
+
+    /* =========================================================
+       PAID / PENDING
+    ========================================================= */
+
+    async function markPaid() {
+
+        const payment =
+            currentTransaction
+                .payments[
+                    currentPaymentIndex
+                ];
+
+
+        payment.status =
+            "paid";
+
+
+        updateTransactionStatus();
+
+
+        await saveTransaction(
+            currentTransaction
+        );
+
+
+        await renderCurrentPayment();
+
+    }
+
+
+    async function markPending() {
+
+        const payment =
+            currentTransaction
+                .payments[
+                    currentPaymentIndex
+                ];
+
+
+        payment.status =
+            "pending";
+
+
+        updateTransactionStatus();
+
+
+        await saveTransaction(
+            currentTransaction
+        );
+
+
+        await renderCurrentPayment();
+
+    }
+
+
+    function updateTransactionStatus() {
+
+        const allPaid =
+            currentTransaction
+                .payments
+                .every(
+                    payment =>
+                        payment.status ===
+                        "paid"
+                );
+
+
+        currentTransaction.status =
+            allPaid
+                ? "completed"
+                : "pending";
+
+    }
+
+
+    /* =========================================================
+       CAMERA / GALLERY
+    ========================================================= */
+
+    function openCamera() {
+
+        document
+            .getElementById(
+                "cameraInput"
+            )
+            .click();
+
+    }
+
+
+    function openGallery() {
+
+        document
+            .getElementById(
+                "galleryInput"
+            )
+            .click();
+
+    }
+
+
+    /* =========================================================
+       PROOF
+    ========================================================= */
+
+    async function handleProof(
+        event
+    ) {
+
+        const file =
+            event.target.files[0];
+
+
+        if (!file) {
+
+            return;
+
+        }
+
+
+        if (
+            !file.type.startsWith(
+                "image/"
+            )
+        ) {
+
+            alert(
+                "Please select an image."
+            );
+
+
+            return;
+
+        }
+
+
+        const payment =
+            currentTransaction
+                .payments[
+                    currentPaymentIndex
+                ];
+
+
+        const proofId =
+            "PROOF-" +
+            Date.now() +
+            "-" +
+            Math.random()
+                .toString(36)
+                .substring(
+                    2,
+                    8
+                );
+
+
+        const proof = {
+
+            id:
+                proofId,
+
+            transactionId:
+                currentTransaction.id,
+
+            paymentReference:
+                payment.reference,
+
+            blob:
+                file,
+
+            name:
+                file.name,
+
+            type:
+                file.type,
+
+            addedAt:
+                new Date().toISOString()
+
+        };
+
+
+        await saveProof(
+            proof
+        );
+
+
+        payment.proofId =
+            proofId;
+
+
+        payment.proofName =
+            file.name;
+
+
+        payment.proofType =
+            file.type;
+
+
+        payment.proofAddedAt =
+            new Date().toISOString();
+
+
+        await saveTransaction(
+            currentTransaction
+        );
+
+
+        await displayProof(
+            file,
+            file.name
+        );
+
+
+        event.target.value =
+            "";
+
+    }
+
+
+    async function loadCurrentProof() {
+
+        const payment =
+            currentTransaction
+                .payments[
+                    currentPaymentIndex
+                ];
+
+
+        const proofInfo =
+            document.getElementById(
+                "proofInfo"
+            );
+
+
+        if (
+            !payment.proofId
+        ) {
+
+            proofInfo.classList.add(
+                "hidden"
+            );
+
+
+            return;
+
+        }
+
+
+        const proof =
+            await getProof(
+                payment.proofId
+            );
+
+
+        if (
+            !proof
+        ) {
+
+            proofInfo.classList.add(
+                "hidden"
+            );
+
+
+            return;
+
+        }
+
+
+        await displayProof(
+            proof.blob,
+            proof.name
+        );
+
+    }
+
+
+    async function displayProof(
+        blob,
+        fileName
+    ) {
+
+        const proofPreview =
+            document.getElementById(
+                "proofPreview"
+            );
+
+
+        const proofInfo =
+            document.getElementById(
+                "proofInfo"
+            );
+
+
+        const proofFileName =
+            document.getElementById(
+                "proofFileName"
+            );
+
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        proofPreview.src =
+            url;
+
+
+        proofFileName.textContent =
+            "Proof: " +
+            fileName;
+
+
+        proofInfo.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
+    /* =========================================================
+       NEXT PAYMENT
+    ========================================================= */
+
+    async function nextPayment() {
+
+        const payment =
+            currentTransaction
+                .payments[
+                    currentPaymentIndex
+                ];
+
+
+        if (
+            payment.status !==
+            "paid"
+        ) {
+
+            alert(
+                "Please mark this payment as PAID before continuing."
+            );
+
+
+            return;
+
+        }
+
+
+        if (
+            currentPaymentIndex <
+            currentTransaction
+                .payments.length -
+            1
+        ) {
+
+            currentPaymentIndex++;
+
+
+            await saveTransaction(
+                currentTransaction
+            );
+
+
+            await renderCurrentPayment();
+
+
+            return;
+
+        }
+
+
+        updateTransactionStatus();
+
+
+        await saveTransaction(
+            currentTransaction
+        );
+
+
+        document
+            .getElementById(
+                "completionCard"
+            )
+            .classList.remove(
+                "hidden"
+            );
+
+
+        document
+            .getElementById(
+                "paymentActions"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+
+        document
+            .getElementById(
+                "proofSection"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+    }
+
+
+    /* =========================================================
+       NEW PAYMENT
+    ========================================================= */
+
+    function startNewPayment() {
+
+        currentTransaction =
+            null;
+
+
+        currentPaymentIndex =
+            0;
+
+
+        document
+            .getElementById(
+                "paymentScreen"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+
+        document
+            .getElementById(
+                "startScreen"
+            )
+            .classList.remove(
+                "hidden"
+            );
+
+
+        document
+            .getElementById(
+                "completionCard"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+
+        updateHomeConfiguration();
+
+    }
+
+
+    /* =========================================================
+       HISTORY
+    ========================================================= */
+
+    async function refreshHistory() {
+
+        if (!db) {
+
+            return;
+
+        }
+
+
+        const transactions =
+            await getAllTransactions();
+
+
+        const historyList =
+            document.getElementById(
+                "historyList"
+            );
+
+
+        const detail =
+            document.getElementById(
+                "transactionDetail"
+            );
+
+
+        historyList.innerHTML =
+            "";
+
+
+        detail.innerHTML =
+            "";
+
+
+        detail.classList.add(
+            "hidden"
+        );
+
+
+        historyList.classList.remove(
+            "hidden"
+        );
+
+
+        if (
+            transactions.length ===
+            0
+        ) {
+
+            historyList.innerHTML = `
+
+                <div class="empty">
+
+                    <strong>
+                        No transactions yet
+                    </strong>
+
+                    <p>
+                        Your completed and pending
+                        transactions will appear here.
+                    </p>
+
+                </div>
+
+            `;
+
+
+            return;
+
+        }
+
+
+        for (
+            const transaction
+            of transactions
+        ) {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "history-card";
+
+
+            const date =
+                new Date(
+                    transaction.createdAt
+                );
+
+
+            const completed =
+                transaction.status ===
+                "completed";
+
+
+            card.innerHTML = `
+
+                <div class="history-header">
+
+                    <div>
+
+                        <div class="history-amount">
+                            ₹${transaction.totalAmount.toFixed(2)}
+                        </div>
+
+                        <div class="history-date">
+                            ${date.toLocaleString()}
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-status ${
+                        completed
+                            ? "completed"
+                            : "pending"
+                    }">
+
+                        ${
+                            completed
+                                ? "COMPLETED"
+                                : "PENDING"
+                        }
+
+                    </div>
+
+                </div>
+
+
+                <div class="history-meta">
+
+                    <strong>Merchant:</strong>
+                    ${escapeHtml(
+                        transaction.merchantName
+                    )}
+
+                    <br>
+
+                    <strong>UPI:</strong>
+                    ${escapeHtml(
+                        transaction.merchantUPI
+                    )}
+
+                    <br>
+
+                    <strong>Payments:</strong>
+                    ${transaction.payments.length}
+
+                </div>
+
+
+                <div style="margin-top:14px;">
+
+                    <button
+                        class="secondary"
+                        onclick="viewTransaction('${transaction.id}')"
+                    >
+                        View Details
+                    </button>
+
+                </div>
+
+            `;
+
+
+            historyList.appendChild(
+                card
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       VIEW TRANSACTION
+    ========================================================= */
+
+    async function viewTransaction(
+        transactionId
+    ) {
+
+        const transaction =
+            await getTransaction(
+                transactionId
+            );
+
+
+        if (!transaction) {
+
+            alert(
+                "Transaction could not be found."
+            );
+
+
+            return;
+
+        }
+
+
+        const historyList =
+            document.getElementById(
+                "historyList"
+            );
+
+
+        const detail =
+            document.getElementById(
+                "transactionDetail"
+            );
+
+
+        historyList.classList.add(
+            "hidden"
+        );
+
+
+        detail.classList.remove(
+            "hidden"
+        );
+
+
+        const date =
+            new Date(
+                transaction.createdAt
+            );
+
+
+        const completed =
+            transaction.status ===
+            "completed";
+
+
+        let paymentsHTML =
+            "";
+
+
+        for (
+            let i = 0;
+            i < transaction.payments.length;
+            i++
+        ) {
+
+            const payment =
+                transaction.payments[i];
+
+
+            let proofButton =
+                "";
+
+
+            if (
+                payment.proofId
+            ) {
+
+                const proof =
+                    await getProof(
+                        payment.proofId
+                    );
+
+
+                if (
+                    proof
+                ) {
+
+                    proofButton = `
+
+                        <button
+                            class="proof-button"
+                            onclick="viewProof('${proof.id}')"
+                        >
+                            View Saved Proof
+                        </button>
+
+                    `;
+
+                }
+
+            }
+
+
+            paymentsHTML += `
+
+                <div class="payment-detail">
+
+                    <h3>
+                        Payment ${i + 1}
+                    </h3>
+
+
+                    <div class="detail-row">
+
+                        <span class="detail-label">
+                            Amount
+                        </span>
+
+                        <span class="detail-value">
+                            ₹${payment.amount.toFixed(2)}
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-row">
+
+                        <span class="detail-label">
+                            Status
+                        </span>
+
+                        <span class="detail-value">
+                            ${
+                                payment.status ===
+                                "paid"
+                                    ? "PAID"
+                                    : "NOT PAID"
+                            }
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-row">
+
+                        <span class="detail-label">
+                            Reference
+                        </span>
+
+                        <span class="detail-value">
+                            ${escapeHtml(
+                                payment.reference
+                            )}
+                        </span>
+
+                    </div>
+
+
+                    ${proofButton}
+
+                </div>
+
+            `;
+
+        }
+
+
+        detail.innerHTML = `
+
+            <button
+                class="secondary"
+                onclick="closeTransactionDetails()"
+                style="margin-bottom:15px;"
+            >
+                ← Back to History
+            </button>
+
+
+            <div class="card">
+
+                <h2 style="margin-top:0;">
+                    Transaction Details
+                </h2>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Total Amount
+                    </span>
+
+                    <span class="detail-value">
+                        ₹${transaction.totalAmount.toFixed(2)}
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Date
+                    </span>
+
+                    <span class="detail-value">
+                        ${date.toLocaleString()}
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Merchant
+                    </span>
+
+                    <span class="detail-value">
+                        ${escapeHtml(
+                            transaction.merchantName
+                        )}
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        UPI ID
+                    </span>
+
+                    <span class="detail-value">
+                        ${escapeHtml(
+                            transaction.merchantUPI
+                        )}
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Maximum QR
+                    </span>
+
+                    <span class="detail-value">
+                        ₹${transaction.maxAmount.toFixed(2)}
+                    </span>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span class="detail-label">
+                        Transaction Status
+                    </span>
+
+                    <span class="detail-value">
+                        ${
+                            completed
+                                ? "COMPLETED"
+                                : "PENDING"
+                        }
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <h3>
+                Payments
+            </h3>
+
+
+            ${paymentsHTML}
+
+        `;
+
+    }
+
+
+    function closeTransactionDetails() {
+
+        const historyList =
+            document.getElementById(
+                "historyList"
+            );
+
+
+        const detail =
+            document.getElementById(
+                "transactionDetail"
+            );
+
+
+        detail.classList.add(
+            "hidden"
+        );
+
+
+        historyList.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
+    /* =========================================================
+       VIEW PROOF
+    ========================================================= */
+
+    async function viewProof(
+        proofId
+    ) {
+
+        const proof =
+            await getProof(
+                proofId
+            );
+
+
+        if (!proof) {
+
+            alert(
+                "The saved proof could not be found."
+            );
+
+
+            return;
+
+        }
+
+
+        const url =
+            URL.createObjectURL(
+                proof.blob
+            );
+
+
+        document
+            .getElementById(
+                "fullProofImage"
+            )
+            .src =
+            url;
+
+
+        document
+            .getElementById(
+                "proofViewer"
+            )
+            .classList.remove(
+                "hidden"
+            );
+
+    }
+
+
+    function closeProofViewer() {
+
+        document
+            .getElementById(
+                "proofViewer"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+
+        document
+            .getElementById(
+                "fullProofImage"
+            )
+            .src =
+            "";
+
+    }
+
+
+    /* =========================================================
+       HTML SAFETY
+    ========================================================= */
+
+    function escapeHtml(
+        value
+    ) {
+
+        return String(value)
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+    /* =========================================================
+       START
+    ========================================================= */
+
+    initializeApp();
+/* =========================================================
+   REMOTE CONFIGURATION
+========================================================= */
+
+const REMOTE_CONFIG_URL =
+    "config.json";
+
+
+function validateRemoteConfiguration(
+    configuration
+) {
+
+    if (
+        !configuration ||
+        typeof configuration !== "object"
+    ) {
+        return false;
+    }
+if (
+    configuration.app !== "SSS"
+) {
+    return false;
+}
+
+
+if (
+    configuration.configId !==
+    "sss-production"
+) {
+    return false;
+}
+
+    if (
+        !Number.isInteger(
+            configuration.version
+        ) ||
+        configuration.version < 1
+    ) {
+        return false;
+    }
+
+
+    if (
+        typeof configuration.merchantName !==
+        "string" ||
+        !configuration.merchantName.trim()
+    ) {
+        return false;
+    }
+
+
+    if (
+        typeof configuration.merchantUPI !==
+        "string"
+    ) {
+        return false;
+    }
+
+
+    const merchantUPI =
+        configuration.merchantUPI
+            .trim()
+            .toLowerCase();
+
+
+    const upiPattern =
+        /^[a-zA-Z0-9._-]{2,}@[a-zA-Z0-9._-]{2,}$/;
+
+
+    if (
+        !upiPattern.test(
+            merchantUPI
+        )
+    ) {
+        return false;
+    }
+
+
+    const maxAmount =
+        Number(
+            configuration.maxAmount
+        );
+
+
+    if (
+        !Number.isFinite(maxAmount) ||
+        maxAmount <= 0 ||
+        maxAmount > 1000000
+    ) {
+        return false;
+    }
+
+
+    return true;
+
+}
+
+
+async function fetchRemoteConfiguration() {
+
+    try {
+
+        const response =
+            await fetch(
+                REMOTE_CONFIG_URL,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Remote configuration could not be loaded."
+            );
+
+        }
+
+
+        const remoteConfig =
+            await response.json();
+
+
+        if (
+            !validateRemoteConfiguration(
+                remoteConfig
+            )
+        ) {
+
+            throw new Error(
+                "Remote configuration failed validation."
+            );
+
+        }
+
+
+        const existingConfiguration =
+            await getConfiguration();
+
+
+        const remoteVersion =
+            Number(
+                remoteConfig.version
+            );
+
+
+        const existingRemoteVersion =
+            existingConfiguration &&
+            existingConfiguration.remoteVersion !==
+            undefined
+                ? Number(
+                    existingConfiguration.remoteVersion
+                )
+                : 0;
+
+
+        /*
+         * Only accept the remote configuration
+         * when it is newer than the cached
+         * remote configuration.
+         */
+
+        if (
+            existingConfiguration &&
+            existingConfiguration.source ===
+            "Remote" &&
+            remoteVersion <=
+            existingRemoteVersion
+        ) {
+
+            updateConfigurationDisplay(
+                existingConfiguration
+            );
+
+            updateHomeConfiguration();
+
+            return;
+
+        }
+
+
+        const configuration = {
+
+            id:
+                CONFIG_ID,
+
+            merchantName:
+                remoteConfig.merchantName
+                    .trim(),
+
+            merchantUPI:
+                remoteConfig.merchantUPI
+                    .trim()
+                    .toLowerCase(),
+
+            maxAmount:
+                Number(
+                    Number(
+                        remoteConfig.maxAmount
+                    ).toFixed(2)
+                ),
+
+            updatedAt:
+                new Date().toISOString(),
+
+            source:
+                "Remote",
+
+            remoteVersion:
+                remoteVersion
+
+        };
+
+
+        await saveConfigToDatabase(
+            configuration
+        );
+
+
+        updateConfigurationDisplay(
+            configuration
+        );
+
+
+        updateHomeConfiguration();
+
+
+        console.log(
+            "Remote configuration applied successfully:",
+            configuration
+        );
+
+
+    } catch (error) {
+
+        console.warn(
+            "Remote configuration unavailable. Using cached local configuration.",
+            error
+        );
+
+    }
+
+}
+</script>
+
+</body>
+</html>
