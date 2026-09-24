@@ -1,8 +1,8 @@
 {
   "app": "SSS",
   "configId": "sss-production",
-  "version": 3,
-  "merchantName": "Manu Jain",
-  "merchantUPI": "9691828493-2@axl",
+  "version": 4,
+  "merchantName": "Samaiya Steel Showroom",
+  "merchantUPI": "q027880905@ybl",
   "maxAmount": 2000
 }
